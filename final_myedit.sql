@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3307
--- Generation Time: Feb 17, 2025 at 10:24 PM
+-- Host: 127.0.0.1
+-- Generation Time: Feb 21, 2025 at 10:48 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -39,10 +39,58 @@ END$$
 --
 -- Functions
 --
-CREATE DEFINER=`root`@`localhost` FUNCTION `checkAnswer` (`answer_id` INT) RETURNS INT(11) DETERMINISTIC BEGIN
-    DECLARE result INT;
-    SELECT COUNT(*) INTO result FROM answers WHERE id = answer_id;
-    RETURN result;
+CREATE DEFINER=`root`@`localhost` FUNCTION `checkAnswer` (`resID` INT, `qID` INT) RETURNS TINYINT(1)  BEGIN
+    DECLARE RES INT;
+    DECLARE questionType INT;
+
+    -- Get the question type
+    SELECT type INTO questionType FROM question WHERE id = qID;
+
+    -- Check based on question type
+    IF (questionType = 0 OR questionType = 3) THEN
+        -- For multiple-choice or multiple-answer questions
+        SELECT COUNT(*) INTO RES
+        FROM (
+            SELECT answerID
+            FROM result_answers ra
+            WHERE resultID = resID AND questionID = qID
+              AND answerID IN (
+                  SELECT id
+                  FROM question_answers
+                  WHERE isCorrect AND questionID = ra.questionID
+              )
+        ) AS t
+        HAVING COUNT(*) = (
+            SELECT COUNT(*)
+            FROM question_answers
+            WHERE questionID = qID AND isCorrect
+        );
+
+        IF RES > 0 THEN
+            RETURN TRUE;
+        ELSE
+            RETURN FALSE;
+        END IF;
+    ELSEIF (questionType = 2) THEN
+        -- For text-based questions
+        SELECT COUNT(*) INTO RES
+        FROM result_answers ra
+        WHERE resultID = resID AND questionID = qID
+          AND textAnswer IN (
+              SELECT answer
+              FROM question_answers
+              WHERE questionID = ra.questionID
+          );
+
+        IF RES > 0 THEN
+            RETURN TRUE;
+        ELSE
+            RETURN FALSE;
+        END IF;
+    ELSE
+        -- For unsupported question types
+        RETURN FALSE;
+    END IF;
 END$$
 
 CREATE DEFINER=`root`@`localhost` FUNCTION `generateGroupInvites` (`groupID` INT, `count` INT, `pf` VARCHAR(50)) RETURNS INT(11)  BEGIN
@@ -95,34 +143,70 @@ RETURN C;
 
 END$$
 
-CREATE DEFINER=`root`@`localhost` FUNCTION `getResultGrade` (`result_id` INT) RETURNS VARCHAR(10) CHARSET utf8mb4 COLLATE utf8mb4_general_ci DETERMINISTIC BEGIN
-    DECLARE grade VARCHAR(10);
-    DECLARE score INT;
+CREATE DEFINER=`root`@`localhost` FUNCTION `getResultGivenAnswers` (`rid` INT, `qid` INT) RETURNS VARCHAR(255) CHARSET utf8 COLLATE utf8_general_ci  BEGIN
+DECLARE C VARCHAR(255);
+DECLARE qtype INT;
+SET qtype = (select type from question where id = qID);
+IF (qtype = 1) THEN
+	SELECT "True" INTO C FROM result_answers WHERE questionID = qid AND resultID = rid AND isTrue = 1;
 
-    -- Fetch the score from the result table (modify if needed)
-    SELECT SUM(score) INTO score FROM result WHERE id = result_id;
+	SELECT "False" INTO C FROM result_answers WHERE questionID = qid AND resultID = rid AND isTrue = 0;
+ELSEIF (qtype = 4) THEN 
+SELECT GROUP_CONCAT(CONCAT(answer, ' => ', textAnswer) ORDER BY a.id SEPARATOR ', ') INTO C FROM result_answers ra
+INNER JOIN question_answers a
+ON a.id = ra.answerID
+WHERE ra.questionID = qid AND ra.resultID = rid;
+ELSEIF (qtype = 2 || qtype = 5) THEN 
+SELECT textAnswer INTO C FROM result_answers WHERE questionID = qid AND resultID = rid;
+ELSE
+SELECT GROUP_CONCAT(answer SEPARATOR ', ') INTO C FROM result_answers ra
+INNER JOIN question_answers a
+ON a.id = ra.answerID
+WHERE ra.questionID = qid AND ra.resultID = rid;
+END IF;
+RETURN C;
 
-    -- Assign a grade based on the score
-    IF score >= 90 THEN
-        SET grade = 'A';
-    ELSEIF score >= 80 THEN
-        SET grade = 'B';
-    ELSEIF score >= 70 THEN
-        SET grade = 'C';
-    ELSE
-        SET grade = 'F';
-    END IF;
-
-    RETURN grade;
 END$$
 
-CREATE DEFINER=`root`@`localhost` FUNCTION `getResultMaxGrade` (`result_id` INT) RETURNS INT(11) DETERMINISTIC BEGIN
-    DECLARE maxGrade INT;
+CREATE DEFINER=`root`@`localhost` FUNCTION `getResultGrade` (`rid` INT) RETURNS INT(11)  BEGIN
+DECLARE C INT(11);
+SELECT SUM(points) INTO C
+FROM (
+SELECT CASE (SELECT type from question where id = questionID) WHEN 4 THEN
+(SELECT SUM(points) FROM question_answers qa WHERE qa.questionID = ra.questionID) 
+ELSE 
+(SELECT SUM(points) FROM question q WHERE q.id = ra.questionID) 
+END AS points from result_answers ra where resultID = rid and isCorrect GROUP BY questionID) as t;
 
-    -- Modify the calculation based on your database structure
-    SELECT MAX(score) INTO maxGrade FROM result WHERE id = result_id;
 
-    RETURN maxGrade;
+   IF (C IS NULL) THEN
+      SET C = 0;
+   END IF;
+
+
+RETURN C;
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `getResultMaxGrade` (`rid` INT) RETURNS INT(11)  BEGIN
+DECLARE C INT(11);
+SELECT SUM(points) INTO C
+FROM (SELECT CASE (SELECT type FROM question WHERE id = ra.questionID) 
+WHEN 4 THEN
+(SELECT SUM(points) FROM question_answers WHERE questionID = ra.questionID) 
+ELSE 
+(SELECT SUM(points) FROM question q WHERE q.id = ra.questionID) 
+END points
+FROM result_answers ra
+WHERE resultID = rid
+GROUP BY questionID) AS T;
+   IF (C IS NULL) THEN
+      SET C = 0;
+   END IF;
+
+
+RETURN C;
+
 END$$
 
 CREATE DEFINER=`root`@`localhost` FUNCTION `getTestGrade` (`test_id` INT) RETURNS DECIMAL(10,2) DETERMINISTIC BEGIN
@@ -135,20 +219,29 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `getTestGrade` (`test_id` INT) RETURN
     RETURN IFNULL(total_grade, 0);
 END$$
 
-CREATE DEFINER=`root`@`localhost` FUNCTION `Result_CorrectQuestions` (`exam_id` INT) RETURNS INT(11) DETERMINISTIC BEGIN
-    DECLARE correct_count INT;
-    
-    SELECT COUNT(*) INTO correct_count
-    FROM answers
-    WHERE exam_id = exam_id AND is_correct = 1; 
+CREATE DEFINER=`root`@`localhost` FUNCTION `Result_CorrectQuestions` (`rid` INT) RETURNS INT(11)  BEGIN
+DECLARE C INT(11);
+select count(*) INTO C from (select questionID from result_answers where resultID = rid  GROUP BY questionID 
+HAVING CASE (SELECT type from question where id = questionID) WHEN 4 THEN 
+MAX(isCorrect) = 1 ELSE MIN(isCorrect) = 1 END) t;
+IF (C IS NULL) THEN
+      SET C = 0;
+   END IF;
 
-    RETURN correct_count;
+RETURN C;
+
 END$$
 
-CREATE DEFINER=`root`@`localhost` FUNCTION `Result_WrongQuestions` (`exam_id` INT) RETURNS INT(11) DETERMINISTIC BEGIN
-    DECLARE wrong_count INT;
-    SELECT COUNT(*) INTO wrong_count FROM answers WHERE exam_id = exam_id AND is_correct = 0;
-    RETURN wrong_count;
+CREATE DEFINER=`root`@`localhost` FUNCTION `Result_WrongQuestions` (`rid` INT) RETURNS INT(11)  BEGIN
+DECLARE C INT(11);
+select count(*) INTO C from (
+select questionID from result_answers where resultID = rid  GROUP BY questionID 
+HAVING CASE (SELECT type from question where id = questionID) WHEN 4 THEN 
+MAX(isCorrect) = 0 ELSE MIN(isCorrect) = 0 END) t;
+IF (C IS NULL) THEN
+      SET C = 0;
+   END IF;
+RETURN C;
 END$$
 
 DELIMITER ;
@@ -449,7 +542,8 @@ CREATE TABLE `question` (
 INSERT INTO `question` (`id`, `question`, `type`, `points`, `difficulty`, `isTrue`, `instructorID`, `courseID`, `deleted`) VALUES
 (177, '<p>اا</p>', 0, 1, 1, 1, 27, 65, 0),
 (178, '<p>what is the subspace</p>', 5, 5, 1, 1, 28, 67, 0),
-(179, '<p>what is the object orinted</p>', 5, 10, 2, 1, 28, 67, 0);
+(179, '<p>what is the object orinted</p>', 5, 10, 2, 1, 28, 67, 0),
+(180, '<p>سيشسيشسي</p>', 0, 1, 1, 1, 26, 63, 0);
 
 -- --------------------------------------------------------
 
@@ -474,7 +568,10 @@ INSERT INTO `question_answers` (`id`, `questionID`, `answer`, `matchAnswer`, `is
 (908, 177, '<p>1</p>', NULL, 1, 1),
 (909, 177, '<p>2</p>', NULL, 0, 1),
 (910, 177, '<p>3</p>', NULL, 0, 1),
-(911, 177, '<p>4</p>', NULL, 0, 1);
+(911, 177, '<p>4</p>', NULL, 0, 1),
+(912, 180, '<p>شس</p>', NULL, 0, 1),
+(913, 180, '<p>سيشي</p>', NULL, 0, 1),
+(914, 180, '<p>سيسي</p>', NULL, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -529,6 +626,41 @@ INSERT INTO `result_answers` (`id`, `resultID`, `questionID`, `answerID`, `isTru
 (455, 36, 178, NULL, 0, 'nnnnn', -1, 0),
 (456, 36, 179, NULL, 0, 'bbb', -1, 0),
 (457, 36, 178, NULL, 0, 'nnnnn', -1, 0);
+
+--
+-- Triggers `result_answers`
+--
+DELIMITER $$
+CREATE TRIGGER `as` BEFORE INSERT ON `result_answers` FOR EACH ROW BEGIN
+		DECLARE qtype INT;
+		DECLARE qpoints INT;
+    SET qtype = (SELECT type FROM question where id = NEW.questionID);
+		SET qpoints = (SELECT points from question WHERE id = NEW.questionID);
+    IF(qtype = 1) THEN
+			IF NEW.isTrue = (SELECT isTrue from question where id = NEW.questionID) THEN
+			SET NEW.isCorrect = 1;
+			SET NEW.points = qpoints;
+			ELSE
+			SET NEW.isCorrect = 0;
+			SET NEW.points = 0;
+			END IF;
+		ELSEIF(qtype = 5) THEN
+			IF NEW.textAnswer = '' THEN
+			SET NEW.isCorrect = 0;
+			SET NEW.points = 0;
+			END IF;
+		ELSEIF(qtype = 4) THEN
+			IF (NEW.textAnswer = (SELECT matchAnswer from question_answers where id = NEW.answerID)) THEN
+				SET NEW.isCorrect = 1;
+				SET NEW.points = (SELECT points FROM question_answers where id = NEW.answerID);
+			ELSE
+				SET NEW.isCorrect = 0;
+				SET NEW.points = 0;
+			END IF;
+    END IF;
+    END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -877,13 +1009,13 @@ ALTER TABLE `mails`
 -- AUTO_INCREMENT for table `question`
 --
 ALTER TABLE `question`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=180;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=181;
 
 --
 -- AUTO_INCREMENT for table `question_answers`
 --
 ALTER TABLE `question_answers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=912;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=915;
 
 --
 -- AUTO_INCREMENT for table `result`

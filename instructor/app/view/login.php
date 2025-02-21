@@ -42,6 +42,7 @@ require_once 'header.php';
         </div>
     </div>
 <?php
+
 define('ContainsBackground', true);
 require_once 'footer.php';
 ?>

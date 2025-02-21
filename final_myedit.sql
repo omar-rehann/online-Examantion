@@ -17,10 +17,6 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- Database: `o6u_onlineq`
---
-
 DELIMITER $$
 --
 -- Procedures
@@ -309,26 +305,7 @@ INSERT INTO `groups` (`id`, `name`, `assignedTest`, `settingID`, `instructorID`)
 (10, 'first group', NULL, NULL, 27),
 (11, 'A', 36, 76, 28);
 
--- --------------------------------------------------------
 
---
--- Table structure for table `groups_has_students`
---
-
-CREATE TABLE `groups_has_students` (
-  `groupID` int(11) NOT NULL,
-  `studentID` int(11) NOT NULL,
-  `joinDate` datetime DEFAULT NULL ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `groups_has_students`
---
-
-INSERT INTO `groups_has_students` (`groupID`, `studentID`, `joinDate`) VALUES
-(11, 201234567, '2025-02-17 22:41:19');
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `group_invitations`
@@ -370,148 +347,9 @@ INSERT INTO `instructor` (`id`, `name`, `email`, `password`, `phone`, `password_
 -- --------------------------------------------------------
 
 --
--- Table structure for table `instructor_invitations`
---
-
-CREATE TABLE `instructor_invitations` (
-  `code` varchar(36) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
 --
--- Dumping data for table `instructor_invitations`
---
 
-INSERT INTO `instructor_invitations` (`code`) VALUES
-('3436379149'),
-('1312453377'),
-('539210089'),
-('1674630452'),
-('3744290488'),
-('864598149'),
-('3248271963'),
-('1787738721'),
-('3196124642'),
-('532171308'),
-('2723223231'),
-('2185838764'),
-('2545306565'),
-('2874152779'),
-('1086485958'),
-('2222957120'),
-('877293811'),
-('1631290451'),
-('1531707478'),
-('236751871'),
-('148687258'),
-('1992997360'),
-('4106573718'),
-('2775996231'),
-('3568843964'),
-('2026107465'),
-('1564106584'),
-('3132078862'),
-('117311189'),
-('3311579761'),
-('4077317859'),
-('1783626138'),
-('3514693432'),
-('4041026664'),
-('3139201766'),
-('580160503'),
-('4202771515'),
-('4268978939'),
-('3318004562'),
-('1234787235'),
-('839183929'),
-('2921875704'),
-('609458657'),
-('3872747522'),
-('2947251994'),
-('1016969511'),
-('2648424452'),
-('1258454550'),
-('2383856834'),
-('3153797934'),
-('1797035629'),
-('585013224'),
-('1216893643'),
-('1088299832'),
-('358495416'),
-('848558203'),
-('1102213090'),
-('1286406505'),
-('332146294'),
-('1155120592'),
-('2378742868'),
-('3935557185'),
-('3836907877'),
-('3210208983'),
-('588454037'),
-('1833890942'),
-('70513812'),
-('423772056'),
-('4190370638'),
-('1531441236'),
-('4022909221'),
-('1169577104'),
-('1362625431'),
-('4029146575'),
-('2145234280'),
-('2145458316'),
-('2322854885'),
-('1668422571'),
-('2835878077'),
-('3203506061'),
-('3917381082'),
-('3900456002'),
-('2590793991'),
-('2959313765'),
-('2457178678'),
-('2497901998'),
-('2440229972'),
-('1764908271'),
-('3133973013'),
-('1435313637'),
-('3044961426'),
-('1564720312'),
-('3987270514'),
-('3228301631'),
-('4128396261'),
-('1379081102'),
-('1993513991'),
-('3653415330'),
-('3387494218'),
-('3862202104'),
-('3823950470'),
-('3502156019'),
-('132801621'),
-('483119632'),
-('224998045'),
-('4132551462'),
-('2803516455'),
-('3720358475'),
-('2284280245'),
-('3044255350'),
-('4293298884');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `mails`
---
-
-CREATE TABLE `mails` (
-  `id` int(11) NOT NULL,
-  `resultID` int(11) DEFAULT NULL,
-  `studentID` int(11) DEFAULT NULL,
-  `instructorID` int(11) DEFAULT NULL,
-  `sends_at` timestamp NULL DEFAULT NULL,
-  `sent` tinyint(1) DEFAULT 0,
-  `type` tinyint(1) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `mails`
 --
 
 INSERT INTO `mails` (`id`, `resultID`, `studentID`, `instructorID`, `sends_at`, `sent`, `type`) VALUES
@@ -519,25 +357,7 @@ INSERT INTO `mails` (`id`, `resultID`, `studentID`, `instructorID`, `sends_at`, 
 
 -- --------------------------------------------------------
 
---
--- Table structure for table `question`
---
 
-CREATE TABLE `question` (
-  `id` int(11) NOT NULL,
-  `question` varchar(2000) DEFAULT NULL,
-  `type` int(1) DEFAULT NULL COMMENT '0 - MCQ / 1 - T/F /2- COMPLETE/',
-  `points` int(11) NOT NULL DEFAULT 1,
-  `difficulty` tinyint(1) DEFAULT 1,
-  `isTrue` tinyint(1) NOT NULL DEFAULT 1,
-  `instructorID` int(11) NOT NULL,
-  `courseID` int(11) DEFAULT NULL,
-  `deleted` tinyint(1) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `question`
---
 
 INSERT INTO `question` (`id`, `question`, `type`, `points`, `difficulty`, `isTrue`, `instructorID`, `courseID`, `deleted`) VALUES
 (177, '<p>اا</p>', 0, 1, 1, 1, 27, 65, 0),
@@ -551,50 +371,10 @@ INSERT INTO `question` (`id`, `question`, `type`, `points`, `difficulty`, `isTru
 -- Table structure for table `question_answers`
 --
 
-CREATE TABLE `question_answers` (
-  `id` int(11) NOT NULL,
-  `questionID` int(11) DEFAULT NULL,
-  `answer` varchar(2000) DEFAULT NULL,
-  `matchAnswer` varchar(255) DEFAULT NULL,
-  `isCorrect` tinyint(1) DEFAULT 1,
-  `points` int(2) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `question_answers`
---
-
-INSERT INTO `question_answers` (`id`, `questionID`, `answer`, `matchAnswer`, `isCorrect`, `points`) VALUES
-(908, 177, '<p>1</p>', NULL, 1, 1),
-(909, 177, '<p>2</p>', NULL, 0, 1),
-(910, 177, '<p>3</p>', NULL, 0, 1),
-(911, 177, '<p>4</p>', NULL, 0, 1),
-(912, 180, '<p>شس</p>', NULL, 0, 1),
-(913, 180, '<p>سيشي</p>', NULL, 0, 1),
-(914, 180, '<p>سيسي</p>', NULL, 1, 1);
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `result`
---
 
-CREATE TABLE `result` (
-  `id` int(11) NOT NULL,
-  `studentID` int(11) NOT NULL,
-  `testID` int(11) NOT NULL,
-  `groupID` int(11) DEFAULT NULL,
-  `settingID` int(11) DEFAULT NULL,
-  `startTime` timestamp NOT NULL DEFAULT current_timestamp(),
-  `endTime` timestamp NULL DEFAULT NULL,
-  `isTemp` tinyint(1) NOT NULL DEFAULT 1,
-  `hostname` varchar(255) DEFAULT NULL,
-  `ipaddr` varchar(15) DEFAULT NULL,
-  `score` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
-
---
--- Dumping data for table `result`
 --
 
 INSERT INTO `result` (`id`, `studentID`, `testID`, `groupID`, `settingID`, `startTime`, `endTime`, `isTemp`, `hostname`, `ipaddr`, `score`) VALUES
@@ -627,40 +407,7 @@ INSERT INTO `result_answers` (`id`, `resultID`, `questionID`, `answerID`, `isTru
 (456, 36, 179, NULL, 0, 'bbb', -1, 0),
 (457, 36, 178, NULL, 0, 'nnnnn', -1, 0);
 
---
--- Triggers `result_answers`
---
-DELIMITER $$
-CREATE TRIGGER `as` BEFORE INSERT ON `result_answers` FOR EACH ROW BEGIN
-		DECLARE qtype INT;
-		DECLARE qpoints INT;
-    SET qtype = (SELECT type FROM question where id = NEW.questionID);
-		SET qpoints = (SELECT points from question WHERE id = NEW.questionID);
-    IF(qtype = 1) THEN
-			IF NEW.isTrue = (SELECT isTrue from question where id = NEW.questionID) THEN
-			SET NEW.isCorrect = 1;
-			SET NEW.points = qpoints;
-			ELSE
-			SET NEW.isCorrect = 0;
-			SET NEW.points = 0;
-			END IF;
-		ELSEIF(qtype = 5) THEN
-			IF NEW.textAnswer = '' THEN
-			SET NEW.isCorrect = 0;
-			SET NEW.points = 0;
-			END IF;
-		ELSEIF(qtype = 4) THEN
-			IF (NEW.textAnswer = (SELECT matchAnswer from question_answers where id = NEW.answerID)) THEN
-				SET NEW.isCorrect = 1;
-				SET NEW.points = (SELECT points FROM question_answers where id = NEW.answerID);
-			ELSE
-				SET NEW.isCorrect = 0;
-				SET NEW.points = 0;
-			END IF;
-    END IF;
-    END
-$$
-DELIMITER ;
+
 
 -- --------------------------------------------------------
 
@@ -668,29 +415,7 @@ DELIMITER ;
 -- Table structure for table `student`
 --
 
-CREATE TABLE `student` (
-  `id` int(11) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `phone` varchar(255) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
-  `password_token` varchar(100) DEFAULT NULL,
-  `token_expire` timestamp NULL DEFAULT NULL,
-  `suspended` tinyint(1) DEFAULT 0,
-  `sessionID` varchar(100) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci ROW_FORMAT=DYNAMIC;
 
---
--- Dumping data for table `student`
---
-
-INSERT INTO `student` (`id`, `name`, `email`, `phone`, `password`, `password_token`, `token_expire`, `suspended`, `sessionID`) VALUES
-(201234567, 'omar rehan', 'omar@gmail.com', '01276612118', '276506d3704c67d67ff9a500be50dd95', 'd2e027a80f2e1c6107867afd5daa483e3fff491b6f88d91de4', '2025-02-17 21:47:11', 0, 'i486qsi1s0gudki190t4pfmjve');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `students_has_tests`
 --
 
 CREATE TABLE `students_has_tests` (
